@@ -13,6 +13,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     # TODO: put package requirements here
+    "requests", "bs4", "urllib"
 ]
 
 setup_requirements = [
@@ -25,7 +26,7 @@ test_requirements = [
 
 setup(
     name='mountainproject',
-    version='0.2.0',
+    version='0.3.0',
     description="Python API bindings fowebsite.",
     long_description=readme + '\n\n' + history,
     author="Christopher J. Woodall",
