@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 """
-from itertools import izip_longest
+from itertools import zip_longest
 from multiprocessing import Process, Pipe
-from itertools import izip
 
 
 def grouper(n, iterable, fillvalue=None):
     "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n
-    return izip_longest(fillvalue=fillvalue, *args)
+    return zip_longest(fillvalue=fillvalue, *args)
 
 
 def spawn(f):
@@ -27,7 +26,7 @@ def parmap(f, X):
     """
     pipe = [Pipe() for x in X]
     proc = [Process(target=spawn(f), args=(c, x))
-            for x, (p, c) in izip(X, pipe)]
+            for x, (p, c) in zip(X, pipe)]
     [p.start() for p in proc]
     [p.join() for p in proc]
     return [p.recv() for (p, c) in pipe]
