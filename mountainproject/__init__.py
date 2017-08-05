@@ -5,5 +5,5 @@ from .mountainproject import Api
 
 __author__ = """Christopher J. Woodall"""
 __email__ = 'chris.j.woodall@gmail.com'
-__version__ = '__version__ = '__version__ = '0.1.0'''
+__version__ = '__version__ = '__version__ = '0.2.0'''
 
