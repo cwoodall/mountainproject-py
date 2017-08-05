@@ -9,14 +9,14 @@ class Api(object):
     """
     """
     ROOT_URL = "https://www.mountainproject.com"
-    self.SEARCH_URL = self.ROOT_URL + "/ajax/public/search/results/category"
-    DATA_URL = self.ROOT_URL + "/data"
+    SEARCH_URL = ROOT_URL + "/ajax/public/search/results/category"
+    DATA_URL = ROOT_URL + "/data"
     UP_AREA_IMG = "https://cdn.apstatic.com/mp-img/up.gif"
 
     def __init__(self, key):
         self.key = key
 
-    def getRoutes(self, routeIds):
+    def get_routes(self, routeIds):
         """
         Get all route information for a given set of routeIds
         """
@@ -35,7 +35,7 @@ class Api(object):
                 return None
         return routes
 
-    def _getFAFromRouteHTML(self, soup):
+    def _scrape_fa_from_route(self, soup):
         """
         Extract the First Ascent information for the route.
         """
@@ -44,14 +44,14 @@ class Api(object):
         except:
             return ""
 
-    def _getParentAreaLink(self, soup):
+    def _get_parent_area_link(self, soup):
         """
         Look for a link with the UP_AREA_IMG to get the url to the parent
         """
         return self.ROOT_URL + soup.find(
             "img", {"src": self.UP_AREA_IMG}).parent.get('href')
 
-    def _getGPSCoordinatesFromArea(self, soup):
+    def _get_gps_from_area(self, soup):
         """
         Search through a BeautifulSoup interpretation of a webpage looking
         for <td>Location: </td> if that exists then parse the next table element to get
@@ -68,23 +68,23 @@ class Api(object):
 
         return gps_coordinates
 
-    def _getNearestGPSCoordinateFromRoute(self, soup):
+    def _get_nearest_gps(self, soup):
         """
         Search through areas looking for the first one with a GPS tag
         """
         coordinates = []
 
         while not coordinates:
-            response = requests.get(self._getParentAreaLink(soup))
+            response = requests.get(self._get_parent_area_link(soup))
             if response.ok:
                 soup = BeautifulSoup(response.content, 'html.parser')
-                coordinates = self._getGPSCoordinatesFromArea(soup)
+                coordinates = self._get_gps_from_area(soup)
             else:
                 raise Exception("Network Connection Failed")
 
         return coordinates
 
-    def enrichRoute(self, route):
+    def enrich_route(self, route):
         """
         Scrape MountainProject.com for the first ascent and nearest
         gps data adding that information to the route object.
@@ -92,19 +92,19 @@ class Api(object):
         response = requests.get(route["url"])
         if response.ok:
             soup = BeautifulSoup(response.content, 'html.parser')
-            route["fa"] = self._getFAFromRouteHTML(soup)
-            route["gps"] = self._getNearestGPSCoordinateFromRoute(soup)
+            route["fa"] = self._scrape_fa_from_route(soup)
+            route["gps"] = self._get_nearest_gps(soup)
         return route
 
-    def enrichRoutes(self, routes):
+    def enrich_routes(self, routes):
         """
         Run enrich route in parallel for all routes.
         """
         # Enrich all of the routes in parallel
-        routes["routes"] = parmap(self.enrichRoute, routes["routes"])
+        routes["routes"] = parmap(self.enrich_route, routes["routes"])
         return routes
 
-    def getToDos(self, startPos, userId):
+    def get_todos(self, userId, startPos=0):
         """
         Get the users Todo items by userId
         """
@@ -115,7 +115,7 @@ class Api(object):
         else:
             return None
 
-    def getToDosByEmail(self, startPos, email):
+    def get_todos_by_email(self, email, startPos=0):
         """
         Get the users Todo items by email address
         """
@@ -126,7 +126,7 @@ class Api(object):
         else:
             return None
 
-    def getTicks(self, startPos, userId):
+    def get_ticks(self, userId, startPos=0):
         """
         Get the users ticks by userId
         """
@@ -137,7 +137,7 @@ class Api(object):
         else:
             return None
 
-    def getTicksByEmail(self, startPos, email):
+    def get_ticks_by_email(self, email, startPos=0):
         """
         Get the users ticks by email
         """
@@ -148,7 +148,7 @@ class Api(object):
         else:
             return None
 
-    def getUser(self, userId):
+    def get_user(self, userId):
         """
         Get the user information by userId
         """
@@ -159,7 +159,7 @@ class Api(object):
         else:
             return None
 
-    def getUserByEmail(self, email):
+    def get_user_by_email(self, email):
         """
         Get the user information by email address
         """
@@ -179,11 +179,11 @@ class Api(object):
         else:
             raise Exception("Search Failed")
 
-    def search_routes(self, query, offset=0, size=100):
+    def _search_routes(self, query, offset=0, size=100):
         return self.search(query, "Routes", offset, size)
 
     def search_routes_for_ids(self, query, offset=0, size=100):
-        results = self.search_routes(query, offset, size)
+        results = self._search_routes(query, offset, size)
         route_ids = []
         if results["results"]:
             for route_html in results["results"]["Routes"]:
@@ -204,3 +204,6 @@ class Api(object):
 
     def search_all_routes_for_ids(self, query):
         return list(self.isearch_all_routes_for_ids(query))
+
+    def search_routes(self, query):
+        return self.get_routes(self.search_all_routes_for_ids(query))
