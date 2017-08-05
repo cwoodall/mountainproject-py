@@ -1,46 +1,30 @@
 # -*- coding: utf-8 -*-
-from .grouper import grouper
+from .util import grouper, parmap
 import requests
 import json
 import urllib
 from bs4 import BeautifulSoup
-import multiprocessing
-from multiprocessing import Process, Pipe
-from itertools import izip
 
+class Api(object):
+    """
+    """
+    ROOT_URL = "https://www.mountainproject.com"
+    self.SEARCH_URL = self.ROOT_URL + "/ajax/public/search/results/category"
+    DATA_URL = self.ROOT_URL + "/data"
+    UP_AREA_IMG = "https://cdn.apstatic.com/mp-img/up.gif"
 
-def spawn(f):
-    def fun(pipe, x):
-        pipe.send(f(x))
-        pipe.close()
-    return fun
-
-
-def parmap(f, X):
-    pipe = [Pipe() for x in X]
-    proc = [Process(target=spawn(f), args=(c, x))
-            for x, (p, c) in izip(X, pipe)]
-    [p.start() for p in proc]
-    [p.join() for p in proc]
-    return [p.recv() for (p, c) in pipe]
-
-
-SEARCH_URL = "https://www.mountainproject.com/ajax/public/search/results/category"
-
-
-class MountainProjectData(object):
-
-    def __init__(self, key, url="https://www.mountainproject.com/data", root_url="https://www.mountainproject.com"):
+    def __init__(self, key):
         self.key = key
-        self.url = url
-        self.root_url = root_url
 
     def getRoutes(self, routeIds):
+        """
+        Get all route information for a given set of routeIds
+        """
         routes = None
         for route_set in grouper(100, routeIds):
             route_set = filter(None, route_set)
             response = requests.get(
-                self.url, params={"action": "getRoutes", "key": self.key, "routeIds": ",".join(route_set)})
+                self.DATA_URL, params={"action": "getRoutes", "key": self.key, "routeIds": ",".join(route_set)})
             if response.ok:
                 content = json.loads(response.content)
                 if routes:
@@ -52,16 +36,27 @@ class MountainProjectData(object):
         return routes
 
     def _getFAFromRouteHTML(self, soup):
+        """
+        Extract the First Ascent information for the route.
+        """
         try:
             return soup.find("td", text=u"FA:\xA0").nextSibling.text
         except:
             return ""
 
     def _getParentAreaLink(self, soup):
-        return self.root_url + soup.find(
-            "img", {"src": "https://cdn.apstatic.com/mp-img/up.gif"}).parent.get('href')
+        """
+        Look for a link with the UP_AREA_IMG to get the url to the parent
+        """
+        return self.ROOT_URL + soup.find(
+            "img", {"src": self.UP_AREA_IMG}).parent.get('href')
 
     def _getGPSCoordinatesFromArea(self, soup):
+        """
+        Search through a BeautifulSoup interpretation of a webpage looking
+        for <td>Location: </td> if that exists then parse the next table element to get
+        the GPS in the format LAT, LONG
+        """
         gps_coordinates = []
         location_tag = soup.find('td', text=u"Location: ")
         if location_tag:
@@ -74,6 +69,9 @@ class MountainProjectData(object):
         return gps_coordinates
 
     def _getNearestGPSCoordinateFromRoute(self, soup):
+        """
+        Search through areas looking for the first one with a GPS tag
+        """
         coordinates = []
 
         while not coordinates:
@@ -87,7 +85,10 @@ class MountainProjectData(object):
         return coordinates
 
     def enrichRoute(self, route):
-        # First lets find the FA informatio
+        """
+        Scrape MountainProject.com for the first ascent and nearest
+        gps data adding that information to the route object.
+        """
         response = requests.get(route["url"])
         if response.ok:
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -96,53 +97,74 @@ class MountainProjectData(object):
         return route
 
     def enrichRoutes(self, routes):
+        """
+        Run enrich route in parallel for all routes.
+        """
         # Enrich all of the routes in parallel
         routes["routes"] = parmap(self.enrichRoute, routes["routes"])
         return routes
 
     def getToDos(self, startPos, userId):
+        """
+        Get the users Todo items by userId
+        """
         response = requests.get(
-            self.url, params={"action": "getToDos", "key": self.key, "startPos": startPos, "userId": userId})
+            self.DATA_URL, params={"action": "getToDos", "key": self.key, "startPos": startPos, "userId": userId})
         if response.ok:
             return json.loads(response.content)
         else:
             return None
 
     def getToDosByEmail(self, startPos, email):
+        """
+        Get the users Todo items by email address
+        """
         response = requests.get(
-            self.url, params={"action": "getToDos", "key": self.key, "startPos": startPos, "email": email})
+            self.DATA_URL, params={"action": "getToDos", "key": self.key, "startPos": startPos, "email": email})
         if response.ok:
             return json.loads(response.content)
         else:
             return None
 
     def getTicks(self, startPos, userId):
+        """
+        Get the users ticks by userId
+        """
         response = requests.get(
-            self.url, params={"action": "getTicks", "key": self.key, "startPos": startPos, "userId": userId})
+            self.DATA_URL, params={"action": "getTicks", "key": self.key, "startPos": startPos, "userId": userId})
         if response.ok:
             return json.loads(response.content)
         else:
             return None
 
     def getTicksByEmail(self, startPos, email):
+        """
+        Get the users ticks by email
+        """
         response = requests.get(
-            self.url, params={"action": "getTicks", "key": self.key, "startPos": startPos, "email": email})
+            self.DATA_URL, params={"action": "getTicks", "key": self.key, "startPos": startPos, "email": email})
         if response.ok:
             return json.loads(response.content)
         else:
             return None
 
     def getUser(self, userId):
+        """
+        Get the user information by userId
+        """
         response = requests.get(
-            self.url, params={"action": "getUser", "key": self.key, "userId": userId})
+            self.DATA_URL, params={"action": "getUser", "key": self.key, "userId": userId})
         if response.ok:
             return json.loads(response.content)
         else:
             return None
 
     def getUserByEmail(self, email):
+        """
+        Get the user information by email address
+        """
         response = requests.get(
-            self.url, params={"action": "getUser", "key": self.key, "email": email})
+            self.DATA_URL, params={"action": "getUser", "key": self.key, "email": email})
         if response.ok:
             return json.loads(response.content)
         else:
@@ -151,7 +173,7 @@ class MountainProjectData(object):
     def search(self, query, category, offset, size):
         payload = {"q": urllib.quote_plus(
             query), "c": category, "o": offset, "s": size}
-        r = requests.get(SEARCH_URL, params=payload)
+        r = requests.get(self.SEARCH_URL, params=payload)
         if r.ok:
             return json.loads(r.content)
         else:
