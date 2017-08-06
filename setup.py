@@ -13,7 +13,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     # TODO: put package requirements here
-    "requests", "bs4", "urllib"
+    "requests", "bs4"
 ]
 
 setup_requirements = [
