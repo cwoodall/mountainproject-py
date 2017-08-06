@@ -26,7 +26,7 @@ class Api(object):
             response = requests.get(
                 self.DATA_URL, params={"action": "getRoutes", "key": self.key, "routeIds": ",".join(route_set)})
             if response.ok:
-                content = json.loads(response.content)
+                content = json.loads(response.text)
                 if routes:
                     routes["routes"] += content["routes"]
                 else:
@@ -77,7 +77,7 @@ class Api(object):
         while not coordinates:
             response = requests.get(self._get_parent_area_link(soup))
             if response.ok:
-                soup = BeautifulSoup(response.content, 'html.parser')
+                soup = BeautifulSoup(response.text, 'html.parser')
                 coordinates = self._get_gps_from_area(soup)
             else:
                 raise Exception("Network Connection Failed")
@@ -91,7 +91,7 @@ class Api(object):
         """
         response = requests.get(route["url"])
         if response.ok:
-            soup = BeautifulSoup(response.content, 'html.parser')
+            soup = BeautifulSoup(response.text, 'html.parser')
             route["fa"] = self._scrape_fa_from_route(soup)
             route["gps"] = self._get_nearest_gps(soup)
         return route
@@ -111,7 +111,7 @@ class Api(object):
         response = requests.get(
             self.DATA_URL, params={"action": "getToDos", "key": self.key, "startPos": startPos, "userId": userId})
         if response.ok:
-            return json.loads(response.content)
+            return json.loads(response.text)
         else:
             return None
 
@@ -122,7 +122,7 @@ class Api(object):
         response = requests.get(
             self.DATA_URL, params={"action": "getToDos", "key": self.key, "startPos": startPos, "email": email})
         if response.ok:
-            return json.loads(response.content)
+            return json.loads(response.text)
         else:
             return None
 
@@ -133,7 +133,7 @@ class Api(object):
         response = requests.get(
             self.DATA_URL, params={"action": "getTicks", "key": self.key, "startPos": startPos, "userId": userId})
         if response.ok:
-            return json.loads(response.content)
+            return json.loads(response.text)
         else:
             return None
 
@@ -144,7 +144,7 @@ class Api(object):
         response = requests.get(
             self.DATA_URL, params={"action": "getTicks", "key": self.key, "startPos": startPos, "email": email})
         if response.ok:
-            return json.loads(response.content)
+            return json.loads(response.text)
         else:
             return None
 
@@ -155,7 +155,7 @@ class Api(object):
         response = requests.get(
             self.DATA_URL, params={"action": "getUser", "key": self.key, "userId": userId})
         if response.ok:
-            return json.loads(response.content)
+            return json.loads(response.text)
         else:
             return None
 
@@ -166,16 +166,16 @@ class Api(object):
         response = requests.get(
             self.DATA_URL, params={"action": "getUser", "key": self.key, "email": email})
         if response.ok:
-            return json.loads(response.content)
+            return json.loads(response.text)
         else:
             return None
 
     def search(self, query, category, offset, size):
-        payload = {"q": urllib.quote_plus(
+        payload = {"q": urllib.parse.quote_plus(
             query), "c": category, "o": offset, "s": size}
         r = requests.get(self.SEARCH_URL, params=payload)
         if r.ok:
-            return json.loads(r.content)
+            return json.loads(r.text)
         else:
             raise Exception("Search Failed")
 

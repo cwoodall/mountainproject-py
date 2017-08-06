@@ -26,7 +26,7 @@ test_requirements = [
 
 setup(
     name='mountainproject',
-    version='0.3.0',
+    version='0.3.2',
     description="Python API bindings fowebsite.",
     long_description=readme + '\n\n' + history,
     author="Christopher J. Woodall",
